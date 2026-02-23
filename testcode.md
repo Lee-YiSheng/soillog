@@ -293,7 +293,7 @@ void app_main(void) {
     //dump_last_record();
     //dump_last_n_records(10);
     recover_timeline();
-    //export_all_data_to_csv();
+    export_all_data_to_csv();
 
 // 2. Initialize the built-in BOOT button (GPIO 0)
     gpio_reset_pin(GPIO_NUM_0);

@@ -19,7 +19,6 @@ static const char *TAG = "CACAO_LOGGER";
 // --- CONFIGURATION ---
 #define SLEEP_SECONDS       3600 // 1 Hour 3600, 
 #define BATCH_SIZE          24    // Flush after 24 readings
-// #define BATCH_SIZE 1    //for testing
 
 #define SENSOR_POWER_PIN    GPIO_NUM_25
 #define SENSOR_ADC_CHANNEL  ADC_CHANNEL_6 // GPIO 34 (ADC1 Channel 6)
@@ -41,6 +40,7 @@ RTC_DATA_ATTR uint32_t total_hours_run = 0;
 
 // --- HELPER: SENSOR POWER ---
 #include "rom/ets_sys.h"  // for ets_delay_us()
+
 
 void recover_timeline(void) {
     // If we woke up normally from deep sleep, the RTC memory is perfectly safe. Do nothing.

@@ -1,5 +1,11 @@
 graph LR
+    subgraph Power Supply
+        BATT[3V Battery]
+    end
+
     subgraph ESP32 WROOM-32
+        V33[3.3V Pin]
+        VIN[VIN / 5V Pin]
         G25[GPIO 25]
         G34[GPIO 34 / ADC1_CH6]
         GND_ESP[GND]
@@ -11,10 +17,22 @@ graph LR
         GND_SEN[GND / -]
     end
 
+    %% Battery Connections
+    BATT -->|Power +| V33
+    BATT ---|Ground -| GND_ESP
+    
+    %% Note to explicitly state NOT to use VIN
+    VIN -.->|DO NOT CONNECT BATTERY HERE| VIN
+
+    %% Sensor Connections
     G25 -->|Dynamic Power| VCC
     SIG -->|Analog Signal| G34
     GND_ESP ---|Common Ground| GND_SEN
     
+    %% Styling
+    style BATT stroke:#3c3,stroke-width:2px
+    style V33 stroke:#f66,stroke-width:2px
+    style VIN stroke:#999,stroke-width:1px,stroke-dasharray: 5 5
     style G25 stroke:#f66,stroke-width:2px
     style VCC stroke:#f66,stroke-width:2px
     style G34 stroke:#ff9,stroke-width:2px

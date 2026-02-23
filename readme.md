@@ -72,3 +72,9 @@ Instead, the sensor is powered dynamically via a standard GPIO pin. The ESP32 wa
 
 ## to read mac
 esptool.py -p /dev/cu.usbserial-0001 read_mac
+
+# power consumption
+3v 
+0.008 W Sleep
+0.135 W awake 
+(Without sensor connected)
