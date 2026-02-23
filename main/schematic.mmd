@@ -1,0 +1,23 @@
+graph LR
+    subgraph ESP32 WROOM-32
+        G25[GPIO 25]
+        G34[GPIO 34 / ADC1_CH6]
+        GND_ESP[GND]
+    end
+
+    subgraph Resistive Soil Moisture Sensor
+        VCC[VCC / +]
+        SIG[A0 / SIG]
+        GND_SEN[GND / -]
+    end
+
+    G25 -->|Dynamic Power| VCC
+    SIG -->|Analog Signal| G34
+    GND_ESP ---|Common Ground| GND_SEN
+    
+    style G25 stroke:#f66,stroke-width:2px
+    style VCC stroke:#f66,stroke-width:2px
+    style G34 stroke:#ff9,stroke-width:2px
+    style SIG stroke:#ff9,stroke-width:2px
+    style GND_ESP stroke:#333,stroke-width:2px
+    style GND_SEN stroke:#333,stroke-width:2px
