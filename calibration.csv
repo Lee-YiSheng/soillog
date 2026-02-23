@@ -1,5 +1,5 @@
 Unit_ID,MAC_Address,Deployment_Location,Air_Value_Raw,Water_Value_Raw,Status
-Sensor_01,,Tree_A,,,Pending
+Sensor_01,a4:f0:0f:67:47:00,Tree_A,,,Pending
 Sensor_02,,Tree_B,,,Pending
 Sensor_03,,Tree_C,,,Pending
 Sensor_04,,Tree_D,,,Pending
