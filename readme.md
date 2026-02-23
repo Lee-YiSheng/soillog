@@ -69,3 +69,6 @@ Instead, the sensor is powered dynamically via a standard GPIO pin. The ESP32 wa
 ### Design Notes
 * **Why ADC1 (GPIO 34)?** The ESP32 features two Analog-to-Digital Converters. ADC2 is shared with the Wi-Fi radio and will fail to read if Wi-Fi is active. By forcing the hardware design to use `ADC1_CH6` (GPIO 34), we guarantee that future firmware upgrades involving wireless transmission will not conflict with soil data collection.
 * **Input Only:** GPIO 34, 35, 36, and 39 are "Input-Only" pins on the ESP32. They do not have internal pull-up or pull-down resistors. This makes GPIO 34 ideal for pure analog readings without internal hardware skewing the voltage.
+
+## to read mac
+esptool.py -p /dev/cu.usbserial-0001 read_mac
