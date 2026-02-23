@@ -36,8 +36,8 @@ Flash Memory: 4MB
 
 RAM: 520KB SRAM
 
-https://www.amazon.com/Icstation-Resistive-Soil-Moisture-Sensor/dp/B076DDWDJK
-probably the sensor 
+https://kuriosity.sg/products/soil-moisture-sensor
+soil sensor example LM393 comparator
 
 
 # Partition,Type,Size,Start Offset (Calculation)
