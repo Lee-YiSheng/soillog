@@ -17,9 +17,9 @@
 static const char *TAG = "CACAO_LOGGER";
 
 // --- CONFIGURATION ---
-#define SLEEP_SECONDS       10  // 1 Hour 3600, 
-//#define BATCH_SIZE          24    // Flush after 24 readings
-#define BATCH_SIZE 1    //for testing
+#define SLEEP_SECONDS       10 // 1 Hour 3600, 
+#define BATCH_SIZE          1    // Flush after 24 readings
+// #define BATCH_SIZE 1    //for testing
 
 #define SENSOR_POWER_PIN    GPIO_NUM_25
 #define SENSOR_ADC_CHANNEL  ADC_CHANNEL_6 // GPIO 34 (ADC1 Channel 6)
@@ -33,7 +33,7 @@ static const char *TAG = "CACAO_LOGGER";
 typedef struct {
     uint32_t timestamp_hour;
     uint16_t moisture_raw;
-} data_point_t;
+} __attribute__((packed)) data_point_t; // Forces the compiler to skip padding
 
 RTC_DATA_ATTR data_point_t ram_buffer[BATCH_SIZE];
 RTC_DATA_ATTR int buffer_index = 0;
@@ -41,6 +41,85 @@ RTC_DATA_ATTR uint32_t total_hours_run = 0;
 
 // --- HELPER: SENSOR POWER ---
 #include "rom/ets_sys.h"  // for ets_delay_us()
+
+void recover_timeline(void) {
+    // If we woke up normally from deep sleep, the RTC memory is perfectly safe. Do nothing.
+    if (esp_sleep_get_wakeup_cause() == ESP_SLEEP_WAKEUP_TIMER) {
+        return; 
+    }
+
+    // Otherwise, we suffered a power cut or hard reset!
+    ESP_LOGW(TAG, "Power cycle detected! Recovering timeline from flash...");
+    
+    esp_vfs_spiffs_conf_t conf = {
+        .base_path="/data",
+        .partition_label="storage",
+        .max_files=1,
+        .format_if_mount_failed=false
+    };
+    
+    if (esp_vfs_spiffs_register(&conf) == ESP_OK) {
+        FILE *f = fopen("/data/cacao_log.bin", "rb");
+        if (f) {
+            // Jump to the very end of the file
+            fseek(f, 0, SEEK_END);
+            long file_size = ftell(f);
+            
+            // If the file has at least one record (6 bytes)
+            if (file_size >= sizeof(data_point_t)) {
+                // Step back by exactly one record size
+                fseek(f, file_size - sizeof(data_point_t), SEEK_SET);
+                
+                data_point_t last_record;
+                if (fread(&last_record, sizeof(data_point_t), 1, f) == 1) {
+                    // Overwrite the wiped 0 with our last known timestamp
+                    total_hours_run = last_record.timestamp_hour;
+                    ESP_LOGI(TAG, "Recovered Hour: %" PRIu32, total_hours_run);
+                }
+            }
+            fclose(f);
+        }
+        esp_vfs_spiffs_unregister("storage");
+    }
+}
+
+void export_all_data_to_csv(void) {
+    ESP_LOGI(TAG, "Starting CSV Export...");
+    
+    esp_vfs_spiffs_conf_t conf = {
+        .base_path = "/data",
+        .partition_label = "storage",
+        .max_files = 1,
+        .format_if_mount_failed = false
+    };
+
+    if (esp_vfs_spiffs_register(&conf) != ESP_OK) {
+        printf("Failed to mount SPIFFS. No data.\n");
+        return;
+    }
+
+    FILE *f = fopen("/data/cacao_log.bin", "rb");
+    if (!f) { 
+        printf("No log file found.\n");
+        esp_vfs_spiffs_unregister("storage"); 
+        return; 
+    }
+
+    // Print the CSV Header
+    printf("\n--- START CSV ---\n");
+    printf("Hour_Timestamp,Raw_ADC\n");
+
+    data_point_t record;
+    // Let the ESP32 strip the metadata and read the pure file
+    while (fread(&record, sizeof(data_point_t), 1, f) == 1) {
+        printf("%" PRIu32 ",%u\n", record.timestamp_hour, record.moisture_raw);
+    }
+    
+    printf("--- END CSV ---\n\n");
+
+    fclose(f);
+    esp_vfs_spiffs_unregister("storage");
+}
 
 void power_sensor_on(void) {
     gpio_reset_pin(SENSOR_POWER_PIN);
@@ -212,30 +291,58 @@ int read_soil_moisture_new(void) {
 void app_main(void) {
     //dump_data_to_terminal();
     //dump_last_record();
-    dump_last_n_records(10);
+    //dump_last_n_records(10);
+    recover_timeline();
+    //export_all_data_to_csv();
 
+// 2. Initialize the built-in BOOT button (GPIO 0)
+    gpio_reset_pin(GPIO_NUM_0);
+    gpio_set_direction(GPIO_NUM_0, GPIO_MODE_INPUT);
+    // Give it a tiny delay to stabilize the pin reading
+    vTaskDelay(pdMS_TO_TICKS(10)); 
+
+    // 3. THE "DOWNLOAD MODE" SWITCH
+    // If you are holding the BOOT button when the ESP32 turns on:
+    if (gpio_get_level(GPIO_NUM_0) == 0) {
+        ESP_LOGW(TAG, "*** DOWNLOAD MODE DETECTED ***");
+        
+        // Print the data
+        export_all_data_to_csv();
+        
+        ESP_LOGW(TAG, "Data export complete. You can safely unplug the USB.");
+        
+        // Trap the ESP32 in an infinite loop so it DOES NOT take a new 
+        // sensor reading and ruin your data timeline while plugged into your Mac.
+        while(1) {
+            vTaskDelay(pdMS_TO_TICKS(1000));
+        }
+    }
+
+    // ==========================================
+    // 4. NORMAL LOGGING MODE (Button NOT held)
+    // ==========================================
+    
     total_hours_run++;
 
-    // 1. Read Sensor
+    // Read the sensor
     power_sensor_on();
     int moisture = read_soil_moisture_new();
     power_sensor_off();
 
-    // 2. Buffer Data
+    // Buffer the data
     ram_buffer[buffer_index].timestamp_hour = total_hours_run;
     ram_buffer[buffer_index].moisture_raw = (uint16_t)moisture;
     buffer_index++;
 
-    // FIX: Updated printf for uint32_t
-    ESP_LOGI(TAG, "Hour %" PRIu32 " | Moisture: %d | Buffer: %d/%d", 
+    ESP_LOGI(TAG, "Logged Hour %" PRIu32 " | Moisture: %d | Buffer: %d/%d", 
              total_hours_run, moisture, buffer_index, BATCH_SIZE);
 
-    // 3. Flush if Full
+    // Save to flash if buffer is full
     if (buffer_index >= BATCH_SIZE) {
         save_buffer_to_flash();
     }
 
-    // 4. Sleep
+    // Go back to Deep Sleep
     gpio_hold_dis(SENSOR_POWER_PIN);
     esp_sleep_enable_timer_wakeup(SLEEP_SECONDS * 1000000ULL);
     esp_deep_sleep_start();
