@@ -41,6 +41,7 @@ RTC_DATA_ATTR uint32_t total_hours_run = 0;
 // --- HELPER: SENSOR POWER ---
 #include "rom/ets_sys.h"  // for ets_delay_us()
 
+
 void recover_timeline(void) {
     // If we woke up normally from deep sleep, the RTC memory is perfectly safe. Do nothing.
     if (esp_sleep_get_wakeup_cause() == ESP_SLEEP_WAKEUP_TIMER) {

@@ -1,6 +1,6 @@
 Unit_ID,MAC_Address,Deployment_Location,Air_Value_Raw,Water_Value_Raw,Status
-Sensor_01,a4:f0:0f:67:47:00,Tree_A,,,Pending
-Sensor_02,,Tree_B,,,Pending
-Sensor_03,,Tree_C,,,Pending
-Sensor_04,,Tree_D,,,Pending
-Sensor_05,,Tree_E,,,Pending
+Sensor_01,f4:2d:c9:6b:19:dc,Tree_A,4095,1534,Pending
+Sensor_02,a4:f0:0f:67:47:00,Tree_B,4095,1064,Pending
+Sensor_03,a4:f0:0f:5f:b0:54,Tree_C,4095,1125,Pending
+Sensor_04,a4:f0:0f:5e:f0:08,Tree_D,4095,1138,Pending
+Sensor_05,a4:f0:0f:5f:49:78,Tree_E,4095,1044,Pending
