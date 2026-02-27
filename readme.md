@@ -78,3 +78,12 @@ esptool.py -p /dev/cu.usbserial-0001 read_mac
 0.008 W Sleep
 0.135 W awake 
 (Without sensor connected)
+
+# Solar panel pre-setup
+Treat the 5V mini solar panels with a ceramic car coating or a high-quality glass water repellent (like Rain-X).
+
+Clean the mini solar panels perfectly with rubbing alcohol.
+
+Apply the hydrophobic coating and buff it out.
+
+Mount the panels at a slight angle (at least 15 degrees) on the sensor casing
