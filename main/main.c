@@ -17,6 +17,8 @@
 static const char *TAG = "CACAO_LOGGER";
 
 // --- CONFIGURATION ---
+// #define SLEEP_SECONDS       5    // Sleep for 5 seconds instead of an hour
+// #define BATCH_SIZE          3    // Save to flash after only 3 readings
 #define SLEEP_SECONDS       3600 // 1 Hour 3600, 
 #define BATCH_SIZE          24    // Flush after 24 readings
 
@@ -318,7 +320,7 @@ void app_main(void) {
             vTaskDelay(pdMS_TO_TICKS(1000));
         }
     }
-    
+
     // ==========================================
     // 4. NORMAL LOGGING MODE (Button NOT held)
     // ==========================================
