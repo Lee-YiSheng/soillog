@@ -20,8 +20,8 @@ static const char *TAG = "CACAO_LOGGER";
 #define SLEEP_SECONDS       3600 // 1 Hour 3600, 
 #define BATCH_SIZE          24    // Flush after 24 readings
 
-#define SENSOR_POWER_PIN    GPIO_NUM_25
-#define SENSOR_ADC_CHANNEL  ADC_CHANNEL_6 // GPIO 34 (ADC1 Channel 6)
+#define SENSOR_POWER_PIN    GPIO_NUM_10
+#define SENSOR_ADC_CHANNEL  ADC_CHANNEL_0 // GPIO 0
 #define SENSOR_SETTLE_MS        800     // tune: 200..1000ms
 #define ADC_DISCARD_SAMPLES     8
 #define ADC_AVG_SAMPLES         16

@@ -11,6 +11,9 @@ idf.py -p /dev/cu.usbserial-0001 -b 115200 monitor
 
 idf.py -p /dev/cu.usbserial-0001 -b 115200 flash monitor
 
+
+idf.py -p /dev/cu.usbmodem101 -b 115200 flash monitor
+
 to see monitor
 
 ls /dev/cu.*
@@ -26,7 +29,7 @@ idf.py erase-flash
 # to convert bin to csv
 
 hardware tested on:
-Chipset: ESP32-WROOM-32
+Chipset: ESP32-C3 Mini 
 
 Processor: Dual-Core Xtensa® 32-bit LX6 CPU
 
@@ -63,8 +66,7 @@ Instead, the sensor is powered dynamically via a standard GPIO pin. The ESP32 wa
 | **GND / -** | **GND** | **Common Ground:** Connect to any available GND pin on the ESP32. |
 | **A0 / SIG** | **GPIO 34** | **Analog Signal:** Reads the voltage drop across the soil. Mapped internally to `ADC1_CH6`. |
 
-> **⚠️ Note on ESP32 Hardware Revisions:**
-> This deployment utilizes a mix of 30-pin and 32-pin (USB-C) ESP32 development boards. The compiled firmware (`.bin`) is 100% compatible across both versions. However, the physical locations of GPIO 25 and GPIO 34 differ significantly between board shapes. **Always wire according to the silkscreen labels (e.g., "G25", "G34") printed on the PCB**, rather than counting pins from the edge.
+
 
 ### Design Notes
 * **Why ADC1 (GPIO 34)?** The ESP32 features two Analog-to-Digital Converters. ADC2 is shared with the Wi-Fi radio and will fail to read if Wi-Fi is active. By forcing the hardware design to use `ADC1_CH6` (GPIO 34), we guarantee that future firmware upgrades involving wireless transmission will not conflict with soil data collection.
