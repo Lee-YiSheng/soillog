@@ -295,29 +295,30 @@ void app_main(void) {
     recover_timeline();
     //export_all_data_to_csv();
 
-// 2. Initialize the built-in BOOT button (GPIO 0)
-    gpio_reset_pin(GPIO_NUM_0);
-    gpio_set_direction(GPIO_NUM_0, GPIO_MODE_INPUT);
-    // Give it a tiny delay to stabilize the pin reading
-    vTaskDelay(pdMS_TO_TICKS(10)); 
+/// --- 2. Initialize the built-in BOOT button (GPIO 9 for ESP32-C3) ---
+    gpio_reset_pin(GPIO_NUM_9);
+    gpio_set_direction(GPIO_NUM_9, GPIO_MODE_INPUT);
+    gpio_pullup_en(GPIO_NUM_9); // Ensure it stays HIGH when not pressed
+    
+    // Grace period: Give the Mac time to connect and you time to press the button
+    ESP_LOGI(TAG, "Booting... You have 3 seconds to hold the BOOT button to enter Download Mode.");
+    vTaskDelay(pdMS_TO_TICKS(3000)); 
 
-    // 3. THE "DOWNLOAD MODE" SWITCH
-    // If you are holding the BOOT button when the ESP32 turns on:
-    if (gpio_get_level(GPIO_NUM_0) == 0) {
+    // --- 3. THE "DOWNLOAD MODE" SWITCH ---
+    // The BOOT button pulls the pin LOW (0) when pressed
+    if (gpio_get_level(GPIO_NUM_9) == 0) {
         ESP_LOGW(TAG, "*** DOWNLOAD MODE DETECTED ***");
         
-        // Print the data
         export_all_data_to_csv();
         
-        ESP_LOGW(TAG, "Data export complete. You can safely unplug the USB.");
+        ESP_LOGW(TAG, "Data export complete. Board is now paused.");
         
-        // Trap the ESP32 in an infinite loop so it DOES NOT take a new 
-        // sensor reading and ruin your data timeline while plugged into your Mac.
+        // Trap the ESP32 so it stays awake and keeps the USB connection alive
         while(1) {
             vTaskDelay(pdMS_TO_TICKS(1000));
         }
     }
-
+    
     // ==========================================
     // 4. NORMAL LOGGING MODE (Button NOT held)
     // ==========================================
