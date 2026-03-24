@@ -92,3 +92,24 @@ Watch the serial monitor. Wait until you see *** DOWNLOAD MODE DETECTED *** and 
 0.008 W Sleep
 0.135 W awake 
 (Without sensor connected)
+
+# theorectical new with esp32-3C
+and CR123A panasonic (about 1.4k mAh)
+Usable Capacity: 1,400 mAh * 0.80 = 1,120 mAh
+
+Average Hourly Draw: 0.122 mA (using the C3 SuperMini waking up once an hour to read two sensors and write to flash)
+
+The Calculation:
+
+1,120 mAh / 0.122 mA = 9,180 Hours
+
+9,180 Hours / 24 = 382 Days
+
+# Solar panel pre-setup
+Treat the 5V mini solar panels with a ceramic car coating or a high-quality glass water repellent (like Rain-X).
+
+Clean the mini solar panels perfectly with rubbing alcohol.
+
+Apply the hydrophobic coating and buff it out.
+
+Mount the panels at a slight angle (at least 15 degrees) on the sensor casing
