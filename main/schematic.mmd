@@ -1,41 +1,25 @@
-graph LR
-    subgraph Power Supply
-        BATT[3V Battery]
-    end
+flowchart TD
+    %% Define Components
+    BAT("🔋 2x AA Lithium Battery Pack\n(3.5V Total)")
+    ESP{"⚙️ ESP32-C3 SuperMini"}
+    REED("🧲 N/O Reed Switch")
+    SENS1("🌱 Surface Soil Sensor\n(0cm)")
+    %% SENS2("⛏️ Deep Soil Sensor\n(30cm)")
 
-    subgraph ESP32 WROOM-32
-        V33[3.3V Pin]
-        VIN[VIN / 5V Pin]
-        G25[GPIO 25]
-        G34[GPIO 34 / ADC1_CH6]
-        GND_ESP[GND]
-    end
+    %% Power Routing
+    BAT -- "Red Wire (+) ➔ 3.3V Pin" --> ESP
+    BAT -- "Black Wire (-) ➔ GND Pin" --> ESP
 
-    subgraph Resistive Soil Moisture Sensor
-        VCC[VCC / +]
-        SIG[A0 / SIG]
-        GND_SEN[GND / -]
-    end
+    %% Reed Switch Routing
+    REED -- "Leg 1 ➔ GPIO 2" --> ESP
+    REED -- "Leg 2 ➔ GND Pin" --> ESP
 
-    %% Battery Connections
-    BATT -->|Power +| V33
-    BATT ---|Ground -| GND_ESP
-    
-    %% Note to explicitly state NOT to use VIN
-    VIN -.->|DO NOT CONNECT BATTERY HERE| VIN
+    %% Surface Sensor Routing (CAT5 Cable)
+    ESP -- "GPIO 10 ➔ Shared VCC" --> SENS1
+    ESP -- "GND Pin ➔ Shared GND" --> SENS1
+    SENS1 -- "SIG Wire ➔ GPIO 0 (ADC_0)" --> ESP
 
-    %% Sensor Connections
-    G25 -->|Dynamic Power| VCC
-    SIG -->|Analog Signal| G34
-    GND_ESP ---|Common Ground| GND_SEN
-    
-    %% Styling
-    style BATT stroke:#3c3,stroke-width:2px
-    style V33 stroke:#f66,stroke-width:2px
-    style VIN stroke:#999,stroke-width:1px,stroke-dasharray: 5 5
-    style G25 stroke:#f66,stroke-width:2px
-    style VCC stroke:#f66,stroke-width:2px
-    style G34 stroke:#ff9,stroke-width:2px
-    style SIG stroke:#ff9,stroke-width:2px
-    style GND_ESP stroke:#333,stroke-width:2px
-    style GND_SEN stroke:#333,stroke-width:2px
+    %% Deep Sensor Routing (CAT5 Cable)
+    %%ESP -- "GPIO 10 ➔ Shared VCC" --> SENS2
+    %%ESP -- "GND Pin ➔ Shared GND" --> SENS2
+    %% SENS2 -- "SIG Wire ➔ GPIO 1 (ADC_1)" --> ESP
