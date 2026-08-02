@@ -68,13 +68,22 @@ static int gatt_svr_chr_access(uint16_t conn_handle, uint16_t attr_handle,
     return rc == 0 ? 0 : BLE_ATT_ERR_INSUFFICIENT_RES;
 }
 
+// --- CUSTOM 128-BIT UUID DEFINITIONS ---
+// Service UUID: 4070a2a1-0000-41e9-9a00-112233445566
+static const ble_uuid128_t gatt_svr_svc_uuid =
+    BLE_UUID128_INIT(0x66, 0x55, 0x44, 0x33, 0x22, 0x11, 0x00, 0x9a, 0xe9, 0x41, 0x00, 0x00, 0xa1, 0xa2, 0x70, 0x40);
+
+// Characteristic UUID: 4070a2a1-0001-41e9-9a00-112233445566
+static const ble_uuid128_t gatt_svr_chr_uuid =
+    BLE_UUID128_INIT(0x66, 0x55, 0x44, 0x33, 0x22, 0x11, 0x00, 0x9a, 0xe9, 0x41, 0x01, 0x00, 0xa1, 0xa2, 0x70, 0x40);
+
 static const struct ble_gatt_svc_def gatt_svr_svcs[] = {
     {
         .type = BLE_GATT_SVC_TYPE_PRIMARY,
-        .uuid = BLE_UUID16_DECLARE(0xFFF0),
+        .uuid = &gatt_svr_svc_uuid.u,
         .characteristics = (struct ble_gatt_chr_def[]) {
             {
-                .uuid = BLE_UUID16_DECLARE(0xFFF1),
+                .uuid = &gatt_svr_chr_uuid.u,
                 .access_cb = gatt_svr_chr_access,
                 .flags = BLE_GATT_CHR_F_READ,
             },
