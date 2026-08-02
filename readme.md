@@ -340,11 +340,15 @@ After executing either wipe method, test the board's memory status:
 
    Data export complete. Board is now paused.
 
-# power consumption
+# power consumption old
 3v 
 0.008 W Sleep
 0.135 W awake 
 (Without sensor connected)
+
+# BLE server 
+
+Can be used to read latest data, but not retrieving all the data as it may cost a lot of power.
 
 # theorectical new with esp32-3C
 and CR123A panasonic (about 1.4k mAh)
@@ -357,6 +361,10 @@ The Calculation:
 1,120 mAh / 0.122 mA = 9,180 Hours
 
 9,180 Hours / 24 = 382 Days
+
+Actual mA draw:
+15 mA when active, 0.3 mA when deep sleep. 
+1,120 mAh / 0.3 mA / 24 = 155 days
 
 # Solar panel pre-setup
 Treat the 5V mini solar panels with a ceramic car coating or a high-quality glass water repellent (like Rain-X).
