@@ -160,18 +160,92 @@ Hour_Timestamp,Raw_ADC
 Data export complete. Board is now paused.
 Once you see Data export complete, release the BOOT button. The ESP32 will stay safely awake on your bench without going back to deep sleep, keeping your USB serial connection active.⚠️ Common Bench Trap to AvoidDo NOT hold the BOOT button before or while tapping RESET. Doing so triggers the ESP32-C3 hardware ROM Bootloader (boot:0x7), causing macOS to throw Device not configured (Errno 6).Always let the chip start booting normally, then press BOOT during the 3-second grace period!
 
-## how to get data (old)
-How to execute the test:
 
-Flash this updated code (you may have to hold BOOT while plugging it in one last time to get the flash to work).
+## ⏰ Time Synchronization & Deployment Procedure
 
-Once the code is flashed, open your serial monitor.
+Since the node operates completely offline without Wi-Fi, GPS, or an onboard RTC battery, time is tracked internally as relative runtime hours (`Hour 1`, `Hour 2`, `Hour 3`...). 
 
-Press the RESET button on the board.
+To accurately map logged hour numbers to real-world calendar timestamps, follow this zeroing protocol during field installation.
 
-Immediately press and hold the BOOT button down.
+---
 
-Watch the serial monitor. Wait until you see *** DOWNLOAD MODE DETECTED *** and the CSV printout before you let go of the button.
+### 1. The Time Sync Strategy
+When you deploy the node, you anchor `Hour 1` to a specific real-world timestamp recorded on your phone or field clipboard:
+
+$$\text{Real World Timestamp} = \text{Deployment Timestamp} + ((\text{Logged Hour} - 1) \times 1\text{ Hour})$$
+
+For example, if you record the deployment timestamp on your phone as **June 10 at 09:00 AM**, then:
+* `Hour 1` in the log = **June 10, 09:00 AM**
+* `Hour 24` in the log = **June 11, 08:00 AM**
+* `Hour 168` in the log = **June 17, 08:00 AM**
+
+---
+
+### 2. Field Deployment & Memory Zeroing Checklist
+
+Follow this exact sequence when installing a node at a new cacao tree:
+
+<Sequence>
+{/* Reason: Procedural installation steps where exact sequence is required to erase previous test logs and establish an accurate baseline hour in field records. */}
+  <Step subtitle="Wipe bench testing artifacts" title="1. Clear Legacy Flash Memory">
+    Before closing the enclosure, connect the node to your laptop or hold the BOOT button to ensure all previous bench test logs are cleared or re-formatted if setting up a fresh SPIFFS partition.
+  </Step>
+  <Step subtitle="Prepare the field record" title="2. Position Probe & Seal Box">
+    Bore the soil hole, insert the probe prongs firmly into undisturbed soil at the target depth, close the Tupperware lid, and seal the cable gland.
+  </Step>
+  <Step subtitle="Establish time anchor" title="3. Execute Magnet Swipe Start">
+    Swipe a magnet over the **NO Reed Switch** marker on the box. 
+    
+    * This wakes the board, starts the 60-second BLE window (`IEx_Tree_1`), and initializes/recovers the timeline.
+    * **Immediately log the current time on your phone** (e.g., *Tree #4 deployed on Oct 12 @ 14:15*).
+  </Step>
+  <Step subtitle="Confirm setup in app" title="4. Verify Initial Readiness via BLE">
+    Open **nRF Connect** on your mobile phone, connect to `IEx_Tree_1`, and read Characteristic `0xFFF1`. Confirm that:
+    * `Hour` reads `0` or `1`.
+    * `Last ADC` shows a valid reading corresponding to moist soil (e.g., between your wet/dry calibration bounds, not floating at 0 or 4095).
+  </Step>
+  <Step subtitle="Leave node to log" title="5. Allow Automatic Hourly Sleep">
+    Walk away. After the 60-second BLE window expires, the node enters deep sleep and takes its first official hourly reading at $t + 1\text{ hour}$.
+  </Step>
+</Sequence>
+
+---
+
+### 3. Data Reconstruction Script (Post-Retrieval)
+
+When you download the CSV data in the field via BLE or USB, the output looks like this:
+
+```csv
+Hour_Timestamp,Raw_ADC
+1,2150
+2,2142
+3,2180
+
+
+To convert this into standard ISO dates in Excel, Google Sheets, or Python:
+
+Excel / Google Sheets Formula:
+Assuming your Deployment Date/Time is in cell D1 (formatted as YYYY-MM-DD HH:MM) and your Hour_Timestamp starts in cell A2:
+
+Excel
+= $D$1 + ((A2 - 1) / 24)
+Python Data Pandas Example:
+
+Python
+import pandas as pd
+
+# Load retrieved CSV
+df = pd.read_csv("cacao_log.csv")
+
+# Define your recorded field deployment anchor
+deployment_time = pd.Timestamp("2026-10-12 14:15:00")
+
+# Calculate exact datetime for every hour
+df["Datetime"] = deployment_time + pd.to_timedelta(
+    df["Hour_Timestamp"] - 1, unit="h"
+)
+print(df[["Datetime", "Raw_ADC"]])
+
 
 # power consumption
 3v 
