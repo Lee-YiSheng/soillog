@@ -12,9 +12,9 @@
 #include "freertos/task.h"
 #include "esp_adc/adc_oneshot.h"
 #include "rom/ets_sys.h"
+#include "nvs_flash.h"
 
 // --- BLE NimBLE Headers ---
-#include "esp_nimble_hci.h"
 #include "nimble/nimble_port.h"
 #include "nimble/nimble_port_freertos.h"
 #include "host/ble_hs.h"
@@ -134,7 +134,15 @@ void ble_host_task(void *param) {
 void run_ble_debug_window(void) {
     ESP_LOGW(TAG, "=== REED SWITCH TRIGGERED: Starting 60s BLE Debug Window ===");
     
-    esp_nimble_hci_and_controller_init();
+    // --- REQUIRED BY NIMBLE BEFORE HCI INIT ---
+    esp_err_t ret = nvs_flash_init();
+    if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+        ESP_ERROR_CHECK(nvs_flash_erase());
+        ret = nvs_flash_init();
+    }
+    ESP_ERROR_CHECK(ret);
+    // ------------------------------------------
+
     nimble_port_init();
     
     ble_svc_gap_init();
@@ -154,7 +162,6 @@ void run_ble_debug_window(void) {
     ESP_LOGW(TAG, "=== 60s window expired. Shutting down BLE... ===");
     nimble_port_stop();
     nimble_port_deinit();
-    esp_nimble_hci_and_controller_deinit();
 }
 
 // ============================================================================

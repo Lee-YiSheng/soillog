@@ -144,6 +144,22 @@ map(raw_adc, DRY_VAL, WET_VAL, 0, 100)
 Step 1: Force "Manual Bootloader / Download Mode"
 This forces the C3's internal ROM to bypass your current code and present its built-in USB interface directly to Windows.Plug the SuperMini into your Windows PC via USB.Press and hold the BOOT button on the SuperMini.While continuing to hold BOOT, press and release the RST (Reset) button once.  Release the BOOT button.  
 
+
+## instructions
+1. Setting Up "Sensor Mode" (Normal Logging Cycle)When you power on or reset the ESP32-C3 without holding any buttons, it automatically defaults to Sensor Logging Mode.What to expect during a clean boot:Plug in your ESP32-C3 SuperMini via USB-C (ensure you are not holding the BOOT button).Open your serial monitor in VS Code or Terminal:Bashidf.py -p /dev/cu.usbmodem101 monitor
+The 3-Second Window: You will see this line in the console:Booting... 3 seconds to hold BOOT button for Wired CSV Download Mode.Do nothing! Let those 3 seconds elapse without touching any buttons.Execution: The chip will automatically transition into normal sensor logging:It recovers its hourly timeline from SPIFFS flash memory.It energizes GPIO 10 for 800 ms to power the sensor probe.It reads GPIO 0 (ADC1_CH0), taking 16 averaged samples.It turns off power to GPIO 10.It buffers the reading in RAM (buffer_index++).It prints: Logged Hour X | Moisture: Y | Buffer: 1/24.It sets GPIO 2 as a low-power interrupt wakeup and goes into Deep Sleep for 1 hour (3600s).💡 Bench Testing Tip: Since nothing is wired to GPIO 0 yet, the ADC pin is floating. Your printed moisture value will read near 0 or fluctuate wildly—this is expected until a sensor is attached!2. Reading Logged Data (Wired Mode)To extract your logged CSV data over the USB cable without needing Bluetooth or the reed switch, you trigger the Software Download Window.1.Start the Serial Monitor:Open serial output.Launch the monitor in your VS Code terminal:Bashidf.py -p /dev/cu.usbmodem101 monitor
+2.Tap the Physical RESET Button:Reboot the software.Press and release the RESET button on the ESP32-C3 SuperMini board. (Do NOT touch the BOOT button yet!)3.Press and Hold the BOOT Button:Intercept during the 3-second window.As soon as text starts scrolling in the serial monitor, press and hold down the BOOT button (GPIO 9).4.Wait for CSV Confirmation:Verify payload and release.Keep holding the BOOT button until you see this output in your terminal:Plaintext*** DOWNLOAD MODE DETECTED ***
+Starting CSV Export...
+
+--- START CSV ---
+Hour_Timestamp,Raw_ADC
+1,124
+2,118
+--- END CSV ---
+
+Data export complete. Board is now paused.
+Once you see Data export complete, release the BOOT button. The ESP32 will stay safely awake on your bench without going back to deep sleep, keeping your USB serial connection active.⚠️ Common Bench Trap to AvoidDo NOT hold the BOOT button before or while tapping RESET. Doing so triggers the ESP32-C3 hardware ROM Bootloader (boot:0x7), causing macOS to throw Device not configured (Errno 6).Always let the chip start booting normally, then press BOOT during the 3-second grace period!
+
 ## how to get data (old)
 How to execute the test:
 
