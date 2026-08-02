@@ -24,7 +24,7 @@
 static const char *TAG = "CACAO_LOGGER";
 
 // --- CONFIGURATION ---
-#define SLEEP_SECONDS          3600    // 1 Hour
+#define SLEEP_SECONDS         3600    // 1 Hour
 #define BATCH_SIZE             24      // Flush after 24 readings
 #define DEBUG_WINDOW_SECONDS   60      // BLE active window duration
 
@@ -328,6 +328,14 @@ void enter_deep_sleep(void) {
 // ============================================================================
 
 void app_main(void) {
+        // --- TEMPORARY WIPE ROUTINE --- uncomment to wipe storage on power cycle
+    // ESP_LOGW(TAG, "Formatting SPIFFS storage partition...");
+    // esp_spiffs_format("storage");
+    // total_hours_run = 0;
+    // buffer_index = 0;
+    // ESP_LOGI(TAG, "Storage wiped successfully!");
+    // ------------------------------
+
     recover_timeline();
 
     esp_sleep_wakeup_cause_t cause = esp_sleep_get_wakeup_cause();

@@ -13,6 +13,8 @@ idf.py -p /dev/cu.usbserial-0001 -b 115200 monitor
 
 idf.py -p /dev/cu.usbserial-0001 -b 115200 flash monitor
 
+idf.py -p /dev/cu.usbmodem101 flash
+
 
 idf.py -p /dev/cu.usbmodem101 -b 115200 flash monitor
 
@@ -148,7 +150,13 @@ This forces the C3's internal ROM to bypass your current code and present its bu
 ## instructions
 1. Setting Up "Sensor Mode" (Normal Logging Cycle)When you power on or reset the ESP32-C3 without holding any buttons, it automatically defaults to Sensor Logging Mode.What to expect during a clean boot:Plug in your ESP32-C3 SuperMini via USB-C (ensure you are not holding the BOOT button).Open your serial monitor in VS Code or Terminal:Bashidf.py -p /dev/cu.usbmodem101 monitor
 The 3-Second Window: You will see this line in the console:Booting... 3 seconds to hold BOOT button for Wired CSV Download Mode.Do nothing! Let those 3 seconds elapse without touching any buttons.Execution: The chip will automatically transition into normal sensor logging:It recovers its hourly timeline from SPIFFS flash memory.It energizes GPIO 10 for 800 ms to power the sensor probe.It reads GPIO 0 (ADC1_CH0), taking 16 averaged samples.It turns off power to GPIO 10.It buffers the reading in RAM (buffer_index++).It prints: Logged Hour X | Moisture: Y | Buffer: 1/24.It sets GPIO 2 as a low-power interrupt wakeup and goes into Deep Sleep for 1 hour (3600s).💡 Bench Testing Tip: Since nothing is wired to GPIO 0 yet, the ADC pin is floating. Your printed moisture value will read near 0 or fluctuate wildly—this is expected until a sensor is attached!2. Reading Logged Data (Wired Mode)To extract your logged CSV data over the USB cable without needing Bluetooth or the reed switch, you trigger the Software Download Window.1.Start the Serial Monitor:Open serial output.Launch the monitor in your VS Code terminal:Bashidf.py -p /dev/cu.usbmodem101 monitor
-2.Tap the Physical RESET Button:Reboot the software.Press and release the RESET button on the ESP32-C3 SuperMini board. (Do NOT touch the BOOT button yet!)3.Press and Hold the BOOT Button:Intercept during the 3-second window.As soon as text starts scrolling in the serial monitor, press and hold down the BOOT button (GPIO 9).4.Wait for CSV Confirmation:Verify payload and release.Keep holding the BOOT button until you see this output in your terminal:Plaintext*** DOWNLOAD MODE DETECTED ***
+
+2.Tap the Physical RESET Button:Reboot the software.
+Press and release the RESET button on the ESP32-C3 SuperMini board. (Do NOT touch the BOOT button yet!)
+
+3.Press and Hold the BOOT Button:Intercept during the 3-second window.As soon as text starts scrolling in the serial monitor, press and hold down the BOOT button (GPIO 9).
+
+4.Wait for CSV Confirmation:Verify payload and release.Keep holding the BOOT button until you see this output in your terminal:Plaintext*** DOWNLOAD MODE DETECTED ***
 Starting CSV Export...
 
 --- START CSV ---
@@ -191,7 +199,7 @@ Follow this exact sequence when installing a node at a new cacao tree:
     Before closing the enclosure, connect the node to your laptop or hold the BOOT button to ensure all previous bench test logs are cleared or re-formatted if setting up a fresh SPIFFS partition.
   </Step>
   <Step subtitle="Prepare the field record" title="2. Position Probe & Seal Box">
-    Bore the soil hole, insert the probe prongs firmly into undisturbed soil at the target depth, close the Tupperware lid, and seal the cable gland.
+    Bore the soil hole, insert the probe prongs firmly into undisturbed soil at the target depth, close the case, and seal the cable gland.
   </Step>
   <Step subtitle="Establish time anchor" title="3. Execute Magnet Swipe Start">
     Swipe a magnet over the **NO Reed Switch** marker on the box. 
@@ -220,7 +228,7 @@ Hour_Timestamp,Raw_ADC
 1,2150
 2,2142
 3,2180
-
+```
 
 To convert this into standard ISO dates in Excel, Google Sheets, or Python:
 
@@ -246,6 +254,91 @@ df["Datetime"] = deployment_time + pd.to_timedelta(
 )
 print(df[["Datetime", "Raw_ADC"]])
 
+
+## 🧹 How to Wipe Logged Data (Reset for Testing)
+
+During bench testing or prior to deploying at a new cacao tree, you must erase legacy log records from internal SPIFFS memory. This resets `total_hours_run` back to `0` and clears `cacao_log.bin`.
+
+Choose one of the two methods below to clear the node's storage:
+
+---
+
+### Option A: Flash Memory Format Script (Recommended)
+
+To completely re-format the `/data` SPIFFS partition and wipe all stored binaries:
+
+<Sequence>
+{/* Reason: Sequential instructions for flashing a dedicated wiper routine to format SPIFFS flash memory. */}
+  <Step subtitle="Enable format on mount" title="1. Add Quick Wipe Call in main.c">
+    Temporarily add `esp_spiffs_format("storage");` at the top of `app_main()` in your firmware:
+
+    ```c
+    void app_main(void) {
+        // --- TEMPORARY WIPE ROUTINE ---
+        ESP_LOGW(TAG, "Formatting SPIFFS storage partition...");
+        esp_spiffs_format("storage");
+        total_hours_run = 0;
+        buffer_index = 0;
+        ESP_LOGI(TAG, "Storage wiped successfully!");
+        // ------------------------------
+        
+        // ... rest of app_main()
+    }
+    ```
+  </Step>
+  <Step subtitle="Upload format routine" title="2. Flash to ESP32-C3">
+    Compile and upload the firmware to your board:
+    ```bash
+    idf.py -p /dev/cu.usbmodem101 flash monitor
+    ```
+  </Step>
+  <Step subtitle="Prevent continuous wiping" title="3. Revert main.c & Re-flash">
+    Once you see `Storage wiped successfully!` in the serial log, **comment out or delete** the `esp_spiffs_format("storage");` line, then flash your normal logging firmware back onto the board.
+  </Step>
+</Sequence>
+
+---
+
+### Option B: Terminal Command Line Erase (Full Chip Wipe)
+
+If you want to erase all SPIFFS files, non-volatile memory (NVS), and cached variables in one step directly from your Mac terminal without modifying `main.c`:
+
+<Sequence>
+{/* Reason: Command-line sequence using esptool to wipe flash memory. */}
+  <Step subtitle="Completely erases internal flash" title="1. Run esptool Erase Flash">
+    In your VS Code terminal, execute:
+    ```bash
+    idf.py -p /dev/cu.usbmodem101 erase-flash
+    ```
+    *This wipes the partition table, NVS key-value storage, and SPIFFS binary logs.*
+  </Step>
+  <Step subtitle="Re-deploy fresh partition table and firmware" title="2. Re-flash the Project">
+    Re-upload your project firmware:
+    ```bash
+    idf.py -p /dev/cu.usbmodem101 flash
+    ```
+    *Upon first boot, `save_buffer_to_flash()` will automatically re-create a clean, empty `/data/cacao_log.bin` file.*
+  </Step>
+</Sequence>
+
+---
+
+### 🔍 How to Verify Memory is Clean
+
+After executing either wipe method, test the board's memory status:
+
+1. Connect the node via USB and open `idf.py monitor`.
+2. Tap `RESET` and hold `BOOT` during the 3-second startup window to enter **Wired CSV Download Mode**.
+3. Confirm that the serial output confirms an empty file:
+   ```text
+   *** DOWNLOAD MODE DETECTED ***
+   Starting CSV Export...
+
+   --- START CSV ---
+   Hour_Timestamp,Raw_ADC
+   --- END CSV ---
+
+   Data export complete. Board is now paused.
 
 # power consumption
 3v 
