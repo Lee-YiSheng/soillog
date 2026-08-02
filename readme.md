@@ -140,7 +140,9 @@ Firmware Map:
 Update the firmware mapping parameters with your recorded values:
 map(raw_adc, DRY_VAL, WET_VAL, 0, 100)
 
-
+## debug
+Step 1: Force "Manual Bootloader / Download Mode"
+This forces the C3's internal ROM to bypass your current code and present its built-in USB interface directly to Windows.Plug the SuperMini into your Windows PC via USB.Press and hold the BOOT button on the SuperMini.While continuing to hold BOOT, press and release the RST (Reset) button once.  Release the BOOT button.  
 
 ## how to get data (old)
 How to execute the test:
