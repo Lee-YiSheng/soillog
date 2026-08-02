@@ -2,9 +2,8 @@ flowchart TD
     %% Define Components
     BAT("🔋 2x AA Lithium Battery Pack\n(3.5V Total)")
     ESP{"⚙️ ESP32-C3 SuperMini"}
-    REED("🧲 N/O Reed Switch")
-    SENS1("🌱 Surface Soil Sensor\n(0cm)")
-    %% SENS2("⛏️ Deep Soil Sensor\n(30cm)")
+    REED("🧲 NO Reed Switch")
+    SENS1("🌱 Soil Sensor\n(Single Probe)")
 
     %% Power Routing
     BAT -- "Red Wire (+) ➔ 3.3V Pin" --> ESP
@@ -14,12 +13,7 @@ flowchart TD
     REED -- "Leg 1 ➔ GPIO 2" --> ESP
     REED -- "Leg 2 ➔ GND Pin" --> ESP
 
-    %% Surface Sensor Routing (CAT5 Cable)
-    ESP -- "GPIO 10 ➔ Shared VCC" --> SENS1
+    %% Sensor Routing 
+    ESP -- "GPIO 10 ➔ Sensor VCC" --> SENS1
     ESP -- "GND Pin ➔ Shared GND" --> SENS1
     SENS1 -- "SIG Wire ➔ GPIO 0 (ADC_0)" --> ESP
-
-    %% Deep Sensor Routing (CAT5 Cable)
-    %%ESP -- "GPIO 10 ➔ Shared VCC" --> SENS2
-    %%ESP -- "GND Pin ➔ Shared GND" --> SENS2
-    %% SENS2 -- "SIG Wire ➔ GPIO 1 (ADC_1)" --> ESP
