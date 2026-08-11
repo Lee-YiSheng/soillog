@@ -30,6 +30,12 @@ esptool.py -p /dev/cu.usbserial-0001 -b 460800 read_flash 0x110000 0x200000 caca
 # to clear flash
 idf.py erase-flash
 
+# to calibrate
+change cmake target
+```
+idf.py fullclean && idf.py -p /dev/cu.usbmodem101 build flash monitor
+```
+
 # to convert bin to csv
 
 hardware tested on:
@@ -147,7 +153,122 @@ Step 1: Force "Manual Bootloader / Download Mode"
 This forces the C3's internal ROM to bypass your current code and present its built-in USB interface directly to Windows.Plug the SuperMini into your Windows PC via USB.Press and hold the BOOT button on the SuperMini.While continuing to hold BOOT, press and release the RST (Reset) button once.  Release the BOOT button.  
 
 
-## instructions
+#  Sensor Calibration & Hardware Profiling Guide
+
+Before deploying an ESP32-C3 node to the field, each unit must undergo:
+1. **MAC Address Retrieval** for unique hardware registration.
+2. **Sensor Calibration** to establish dry ($V_{dry}$) and wet ($V_{wet}$) raw ADC baselines.
+
+To prevent flash memory wear and bypass deep-sleep intervals during profiling, calibration is performed using a dedicated firmware target (`calibration_main.c`) that samples at rapid 1-second intervals over USB Serial.
+
+---
+
+## 🔍 Section 1: Retrieving the Board MAC Address
+
+Each ESP32-C3 SuperMini has a unique, factory-burned 48-bit IEEE MAC address stored in eFuse. You can retrieve this address using either method below:
+
+### Method A: Using `esptool.py` (Fastest - No Flashing Required)
+With your ESP32-C3 plugged in via USB, run the following command in your terminal:
+
+```bash
+esptool.py -p /dev/cu.usbmodem101 read_mac
+```
+
+Example Console Output:
+
+```
+esptool.py v4.7.0
+Serial port /dev/cu.usbmodem101
+Connecting...
+Detecting chip type... ESP32-C3
+MAC: f4:2d:c9:6b:19:dc
+Method B: Via Calibration Serial Output
+The calibration_main.c script automatically reads the internal factory eFuse MAC on startup and prints it directly to the serial monitor:
+```
+
+==================================================
+ [CACAO_LOGGER] CALIBRATION & HARDWARE PROFILING
+ Target MAC Address : f4:2d:c9:6b:19:dc
+==================================================
+🛠️ Section 2: Sensor Calibration Procedure
+
+Step 1: Switch to Calibration Firmware
+By default, the build configuration targets the production logger (main/main.c). Switch to the calibration target in main/CMakeLists.txt:
+
+Open main/CMakeLists.txt.
+
+Toggle the active source file to calibration_main.c:
+
+CMake
+# main/CMakeLists.txt
+
+# --- PRODUCTION BUILD (DISABLED) ---
+# idf_component_register(SRCS "main.c" INCLUDE_DIRS ".")
+
+# --- CALIBRATION BUILD (ACTIVE) ---
+idf_component_register(SRCS "calibration_main.c" INCLUDE_DIRS ".")
+Step 2: Flash and Monitor Calibration
+Plug the node into your computer via USB-C.
+
+Build, flash, and open the monitor terminal:
+
+Bash
+idf.py -p /dev/cu.usbmodem101 build flash monitor
+The terminal will print the MAC address and stream raw ADC samples every 1000 ms:
+
+Plaintext
+[CALIBRATION] Sample #12 | Raw ADC: 4095 | Voltage: 3300 mV
+[CALIBRATION] Sample #13 | Raw ADC: 4095 | Voltage: 3300 mV
+Step 3: Record Boundary Values
+Air Baseline (Air_Value_Raw)
+
+Suspend the soil moisture sensor prongs completely in free air. Ensure prongs are clean and dry.
+
+Allow the reading to stabilize for ~10 seconds.
+
+Record the average Raw ADC value (typically 4095 for an uncalibrated/disconnected probe or floating high rail).
+
+Water Baseline (Water_Value_Raw)
+
+Submerge the probe prongs in a container of tap water up to the maximum fill line (do NOT submerge the top circuit components).
+
+Allow the reading to stabilize for ~10 seconds.
+
+Record the average Raw ADC value (typically 1000 to 1500).
+
+📋 Section 3: Calibration Manifest (calibration.csv)
+Maintain a calibration.csv file in the root of your project repository to map unit IDs, hardware MAC addresses, field assignment locations, and calibration thresholds.
+
+Standard Format Structure:
+Code snippet
+Unit_ID,MAC_Address,Deployment_Location,Air_Value_Raw,Water_Value_Raw,Status
+Sensor_01,f4:2d:c9:6b:19:dc,Tree_A,4095,1534,Pending
+Sensor_02,a4:f0:0f:67:47:00,Tree_B,4095,1064,Pending
+Sensor_03,a4:f0:0f:5f:b0:54,Tree_C,4095,1125,Pending
+Sensor_04,a4:f0:0f:5e:f0:08,Tree_D,4095,1138,Pending
+Sensor_05,a4:f0:0f:5f:49:78,Tree_E,4095,1044,Pending
+🚀 Section 4: Return to Production Mode
+Once hardware profiling and logging in calibration.csv are complete:
+
+Update ADC_DRY and ADC_WET values in main/main.c for your target board:
+
+C
+#define ADC_DRY  4095
+#define ADC_WET  1534
+Revert main/CMakeLists.txt back to target main.c:
+
+CMake
+idf_component_register(SRCS "main.c" INCLUDE_DIRS ".")
+Flash the production logger target:
+
+Bash
+idf.py -p /dev/cu.usbmodem101 build flash
+
+---
+
+
+
+### deploy instructions
 1. Setting Up "Sensor Mode" (Normal Logging Cycle)When you power on or reset the ESP32-C3 without holding any buttons, it automatically defaults to Sensor Logging Mode.What to expect during a clean boot:Plug in your ESP32-C3 SuperMini via USB-C (ensure you are not holding the BOOT button).Open your serial monitor in VS Code or Terminal:Bashidf.py -p /dev/cu.usbmodem101 monitor
 The 3-Second Window: You will see this line in the console:Booting... 3 seconds to hold BOOT button for Wired CSV Download Mode.Do nothing! Let those 3 seconds elapse without touching any buttons.Execution: The chip will automatically transition into normal sensor logging:It recovers its hourly timeline from SPIFFS flash memory.It energizes GPIO 10 for 800 ms to power the sensor probe.It reads GPIO 0 (ADC1_CH0), taking 16 averaged samples.It turns off power to GPIO 10.It buffers the reading in RAM (buffer_index++).It prints: Logged Hour X | Moisture: Y | Buffer: 1/24.It sets GPIO 2 as a low-power interrupt wakeup and goes into Deep Sleep for 1 hour (3600s).💡 Bench Testing Tip: Since nothing is wired to GPIO 0 yet, the ADC pin is floating. Your printed moisture value will read near 0 or fluctuate wildly—this is expected until a sensor is attached!2. Reading Logged Data (Wired Mode)To extract your logged CSV data over the USB cable without needing Bluetooth or the reed switch, you trigger the Software Download Window.1.Start the Serial Monitor:Open serial output.Launch the monitor in your VS Code terminal:Bashidf.py -p /dev/cu.usbmodem101 monitor
 

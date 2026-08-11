@@ -47,6 +47,21 @@ RTC_DATA_ATTR data_point_t ram_buffer[BATCH_SIZE];
 RTC_DATA_ATTR int buffer_index = 0;
 RTC_DATA_ATTR uint32_t total_hours_run = 0;
 
+#define ADC_DRY  4095
+#define ADC_WET  1534
+
+/**
+ * @brief Converts raw ADC counts to a 0-100% soil moisture percentage.
+ */
+static int raw_to_moisture_percent(uint16_t raw_adc) {
+    if (raw_adc >= ADC_DRY) return 0;
+    if (raw_adc <= ADC_WET) return 100;
+    
+    // Linear interpolation: (DRY - raw) / (DRY - WET) * 100
+    return (int)(((uint32_t)(ADC_DRY - raw_adc) * 100) / (ADC_DRY - ADC_WET));
+}
+
+
 // ============================================================================
 // 1. NIMBLE BLE GATT SERVER IMPLEMENTATION
 // ============================================================================
@@ -59,14 +74,17 @@ static int gatt_svr_chr_access(uint16_t conn_handle, uint16_t attr_handle,
                                struct ble_gatt_access_ctxt *ctxt, void *arg) {
     char status_str[128];
     uint16_t last_adc = (buffer_index > 0) ? ram_buffer[buffer_index - 1].moisture_raw : 0;
+    int last_pct = (buffer_index > 0) ? raw_to_moisture_percent(last_adc) : 0;
     
+    // Upgraded output format: includes Moisture % alongside Raw ADC
     snprintf(status_str, sizeof(status_str),
-             "Node: IEx_Tree_1 | Hour: %" PRIu32 " | Last ADC: %u | Buffer: %d/%d",
-             total_hours_run, last_adc, buffer_index, BATCH_SIZE);
+             "Node: IEx_Tree_1 | Hour: %" PRIu32 " | Moist: %d%% (%u) | Buffer: %d/%d",
+             total_hours_run, last_pct, last_adc, buffer_index, BATCH_SIZE);
              
     int rc = os_mbuf_append(ctxt->om, status_str, strlen(status_str));
     return rc == 0 ? 0 : BLE_ATT_ERR_INSUFFICIENT_RES;
 }
+
 
 // --- CUSTOM 128-BIT UUID DEFINITIONS ---
 // Service UUID: 4070a2a1-0000-41e9-9a00-112233445566
@@ -384,9 +402,10 @@ void app_main(void) {
     ram_buffer[buffer_index].moisture_raw = (uint16_t)moisture;
     buffer_index++;
 
-    ESP_LOGI(TAG, "Logged Hour %" PRIu32 " | Moisture: %d | Buffer: %d/%d", 
-             total_hours_run, moisture, buffer_index, BATCH_SIZE);
+int moisture_pct = raw_to_moisture_percent((uint16_t)moisture);
 
+    ESP_LOGI(TAG, "Logged Hour %" PRIu32 " | Moisture: %d%% (Raw: %d) | Buffer: %d/%d", 
+             total_hours_run, moisture_pct, moisture, buffer_index, BATCH_SIZE);
     if (buffer_index >= BATCH_SIZE) {
         save_buffer_to_flash();
     }
