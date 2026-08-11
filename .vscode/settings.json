@@ -2,7 +2,7 @@
   "C_Cpp.intelliSenseEngine": "default",
   "idf.currentSetup": "/Users/yishenglee/.espressif/v5.5.2/esp-idf",
   "idf.customExtraVars": {
-    "IDF_TARGET": "esp32c3"
+    "IDF_TARGET": "esp32"
   },
   "clangd.path": "/Users/yishenglee/.espressif/tools/esp-clang/esp-19.1.2_20250312/esp-clang/bin/clangd",
   "clangd.arguments": [
@@ -11,8 +11,8 @@
     "--compile-commands-dir=/Users/yishenglee/Documents/iex/iexsoil/soillog/build"
   ],
   "idf.openOcdConfigs": [
-    "board/esp32c3-builtin.cfg"
+    "board/esp32-wrover-kit-3.3v.cfg"
   ],
-  "idf.port": "/dev/tty.usbmodem1101",
+  "idf.port": "/dev/tty.LP-A7USB",
   "idf.flashType": "JTAG"
 }

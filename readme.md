@@ -27,6 +27,11 @@ to list whihc port (macos)
 
 esptool.py -p /dev/cu.usbserial-0001 -b 460800 read_flash 0x110000 0x200000 cacao_data_raw.bin
 
+or 
+
+`
+esptool.py -p /dev/cu.usbserial-0001 -b 115200 read_flash 0x110000 0x200000 cacao_data_raw.bin
+`
 # to clear flash
 idf.py erase-flash
 
@@ -37,6 +42,34 @@ idf.py fullclean && idf.py -p /dev/cu.usbmodem101 build flash monitor
 ```
 
 # to convert bin to csv
+
+```
+python3 -c '
+import struct
+
+with open("cacao_data_raw.bin", "rb") as f:
+    data = f.read()
+
+record_size = 6  # 4-byte timestamp_hour + 2-byte moisture_raw
+
+print("Hour_Timestamp,Raw_ADC")
+found = 0
+for i in range(0, len(data) - record_size + 1):
+    hour, raw_adc = struct.unpack("<IH", data[i:i+record_size])
+    if hour != 0xFFFFFFFF and 0 < hour < 100000 and 0 < raw_adc <= 4095:
+        print(f"{hour},{raw_adc}")
+        found += 1
+
+if found == 0:
+    print("# No valid binary records detected in this partition window.")
+'
+```
+
+or 
+
+`
+python3 parse_data.py
+`
 
 hardware tested on:
 Chipset: ESP32-C3 super Mini 
